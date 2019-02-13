@@ -87,7 +87,7 @@ class Recruitee:
         ps = self.get('/report/candidates/pipeline_speed', params)
         df = self.generic_parser(ps, 0,
                                  ["total_count", "applied_count", "sourced_count", "phone_screened_count",
-                                 "interviewed_count", "evaluated_count", "offered_count"])
+                                  "interviewed_count", "evaluated_count", "offered_count"])
         return df
 
     def proceed_rate(self, params):
@@ -97,6 +97,11 @@ class Recruitee:
                                   "interviewed_count", "evaluated_count", "offered_count"])
         return df
 
+    def time_to_hire(self, params):
+        tth = self.get('/report/candidates/time_to_hire', params)
+        df = self.generic_parser(tth, 0,
+                                 ["total_count", "hired_count", "min_minutes", "max_minutes", "avg_minutes"])
+        return df
 
     @staticmethod
     def clean(name):
@@ -120,22 +125,14 @@ if __name__ == "__main__":
     Recruitee.AUTH_KEY = getenv("AUTH_TOKEN")
 
     clients = [get_recruitee('perseus'), get_recruitee('infinitec'), get_recruitee('dfs')]
-    qoc = map(lambda x: x.quality_of_candidates(Recruitee.last_quarter()), clients)
-    qoc_result = reduce((lambda x, y: x.append(y)), qoc)
 
-    ps = map(lambda x: x.pipeline_speed(Recruitee.last_quarter()), clients)
-    ps_result = reduce((lambda x, y: x.append(y)), ps)
-
-    pr_result = reduce((lambda x, y: x.append(y)), map(lambda x: x.proceed_rate(Recruitee.last_quarter()), clients))
-
-
-    #
-    # # print(tabulate(df_p.append(df_i), headers=df_p.columns))
-    # qoc_result = df_p.append(df_i).append(df_d)
-    # print(qoc_result.sort_index())
-    # # print(result.sort_values(by=result.columns[0]))
+    qoc_result = reduce((lambda x, y: x.append(y)), map(lambda x: x.quality_of_candidates(Recruitee.last_quarter()), clients))
+    ps_result = reduce((lambda x, y: x.append(y)), map(lambda x: x.proceed_rate(Recruitee.last_quarter()), clients))
+    pr_result = reduce((lambda x, y: x.append(y)), map(lambda x: x.pipeline_speed(Recruitee.last_quarter()), clients))
+    tth_result = reduce((lambda x, y: x.append(y)), map(lambda x: x.time_to_hire(Recruitee.last_quarter()), clients))
 
     with pd.ExcelWriter('output.xlsx') as writer:  # doctest: +SKIP
         qoc_result.to_excel(writer, sheet_name='quality of candidates')
         ps_result.to_excel(writer, sheet_name='pipeline speed')
         pr_result.to_excel(writer, sheet_name='proceed rate')
+        tth_result.to_excel(writer, sheet_name='time_to_hire')
